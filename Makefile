@@ -22,7 +22,7 @@ help:
 
 # 依存関係のインストール
 install:
-	poetry install --without dev
+	poetry install --only=main
 
 # 開発用依存関係のインストール
 dev:
