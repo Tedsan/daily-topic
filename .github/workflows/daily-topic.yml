@@ -1,0 +1,96 @@
+name: Daily Topic Summary
+
+on:
+  # 毎日08:00 JST（23:00 UTC）に実行
+  schedule:
+    - cron: '0 23 * * *'
+
+  # 手動実行を可能にする
+  workflow_dispatch:
+    inputs:
+      category:
+        description: '対象カテゴリ (C1,C2,C3,C4,C5,C6,All)'
+        required: false
+        default: 'All'
+        type: choice
+        options:
+          - 'All'
+          - 'C1'
+          - 'C2'
+          - 'C3'
+          - 'C4'
+          - 'C5'
+          - 'C6'
+      lookback_hours:
+        description: '過去何時間のメッセージを取得するか'
+        required: false
+        default: '24'
+        type: string
+
+jobs:
+  daily-topic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Install dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --no-dev
+
+    - name: Run Daily Topic System
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        RSS_FEED_CHANNEL: "rss-feed"
+        DAILY_TOPIC_CHANNEL: "daily-topic"
+        ENVIRONMENT: "production"
+        LOG_LEVEL: "INFO"
+        # 手動実行時のパラメータを環境変数として設定
+        TARGET_CATEGORY: ${{ github.event.inputs.category || 'All' }}
+        LOOKBACK_HOURS: ${{ github.event.inputs.lookback_hours || '24' }}
+      run: |
+        poetry run python src/main.py
+
+    - name: Notify failure to Slack
+      if: failure()
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        DAILY_TOPIC_CHANNEL: "daily-topic"
+      run: |
+        curl -X POST -H 'Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}' \
+        -H 'Content-type: application/json' \
+        --data '{
+          "channel": "#daily-topic",
+          "text": "🚨 Daily Topic GitHub Actions実行が失敗しました\n実行時刻: '"$(date -u)"'\nワークフロー: '"${{ github.workflow }}"'\n実行者: '"${{ github.actor }}"'\n詳細: '"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"'"
+        }' \
+        https://slack.com/api/chat.postMessage
+
+    - name: Upload stats artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: daily-topic-stats-${{ github.run_number }}
+        path: stats/
+        retention-days: 30
