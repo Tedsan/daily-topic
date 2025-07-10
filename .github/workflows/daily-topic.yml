@@ -59,6 +59,26 @@ jobs:
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --only=main
 
+    - name: Setup Node.js for Claude Code CLI
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Claude Code CLI
+      run: |
+        npm install -g @anthropic-ai/claude-code
+        which claude || echo "Claude CLI not found in PATH"
+        claude --version || echo "Claude CLI version check failed"
+
+    - name: Configure Claude Code CLI
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      run: |
+        # Set up Claude Code CLI authentication
+        mkdir -p ~/.claude
+        echo "$ANTHROPIC_API_KEY" > ~/.claude/api_key
+        claude auth status || echo "Claude auth status check failed"
+
     - name: Run Daily Topic System
       env:
         SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
