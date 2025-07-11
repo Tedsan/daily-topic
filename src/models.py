@@ -1,6 +1,6 @@
 """データモデル定義（pydantic v2対応）"""
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, HttpUrl
@@ -12,22 +12,38 @@ Category = Literal["C1", "C2", "C3", "C4", "C5", "C6"]
 CATEGORY_INFO = {
     "C1": {
         "label": "Software-Defined Vehicle",
-        "keywords": ["SDV", "AUTOSAR", "Adaptive AUTOSAR", "車載ソフト"],
+        "keywords": ["SDV", "AUTOSAR", "Adaptive AUTOSAR", "車載ソフト", "Classic AUTOSAR"],
     },
     "C2": {
         "label": "Industrial IoT & Edge",
-        "keywords": ["Industrial IoT", "IIoT", "スマートファクトリー", "Edge Computing"],
+        "keywords": [
+            "Industrial IoT",
+            "IIoT",
+            "スマートファクトリー",
+            "Edge Computing",
+            "エッジコンピューティング",
+            "産業用IoT",
+            "PLM",
+        ],
     },
     "C3": {
         "label": "Industrial Protocols",
-        "keywords": ["MQTT", "OPC UA", "OPC UA FX", "open62541", "TSN", "openPLC"],
+        "keywords": [
+            "MQTT",
+            "OPC UA",
+            "OPC UA FX",
+            "open62541",
+            "TSN",
+            "openPLC",
+            "ソフトウェアPLC",
+        ],
     },
     "C4": {
         "label": "Generative AI Tech",
         "keywords": [
             "Gemini CLI",
-            "Gemini 1.5",
-            "Claude 3",
+            "Gemini",
+            "Claude",
             "Claude Code",
             "OpenAI",
             "Anthropic",
@@ -44,6 +60,7 @@ CATEGORY_INFO = {
             "AI agent",
             "導入事例",
             "Case Study",
+            "LLM",
         ],
     },
     "C6": {
@@ -143,7 +160,7 @@ class SlackBlockKitMessage(BaseAppModel):
     """Slack Block Kitメッセージ"""
 
     channel: str
-    blocks: list[dict]
+    blocks: list[Any]
     text: str | None = None  # fallback text
 
     @classmethod
@@ -187,7 +204,8 @@ class SlackBlockKitMessage(BaseAppModel):
                 # 元記事URL
                 if summary.article_urls:
                     url_links = []
-                    for i, url in enumerate(summary.article_urls[:5], 1):  # 最大5件
+                    # 最大5件
+                    for i, url in enumerate(summary.article_urls[:5], 1):
                         url_links.append(f"<{url}|記事{i}>")
 
                     blocks.append(

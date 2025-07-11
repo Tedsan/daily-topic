@@ -144,3 +144,7 @@ module = [
     "claude_code_sdk.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["src.models"]
+disable_error_code = ["list-item"]

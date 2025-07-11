@@ -1,5 +1,6 @@
 """エラーハンドリング"""
 import traceback
+from collections.abc import Callable
 from typing import Any
 from uuid import uuid4
 
@@ -12,9 +13,7 @@ logger = get_logger(__name__)
 class DailyTopicError(Exception):
     """Daily Topic システム基底例外"""
 
-    def __init__(
-        self, message: str, step: str = "unknown", job_id: str | None = None
-    ):
+    def __init__(self, message: str, step: str = "unknown", job_id: str | None = None):
         super().__init__(message)
         self.message = message
         self.step = step
@@ -106,7 +105,7 @@ def handle_exception(
 
 
 def retry_with_backoff(
-    func: callable,
+    func: Callable,
     max_retries: int = 3,
     backoff_factor: float = 1.0,
     exceptions: tuple = (Exception,),
@@ -146,7 +145,7 @@ def retry_with_backoff(
 
 
 async def async_retry_with_backoff(
-    func: callable,
+    func: Callable,
     max_retries: int = 3,
     backoff_factor: float = 1.0,
     exceptions: tuple = (Exception,),
