@@ -67,6 +67,15 @@ class SummaryGenerator:
             )
 
             # SummaryLogを作成
+            # 重複URLを除去
+            unique_urls = []
+            seen_urls = set()
+            for article in articles:
+                url_str = str(article.article_url)
+                if url_str not in seen_urls:
+                    unique_urls.append(article.article_url)
+                    seen_urls.add(url_str)
+
             summary_log = SummaryLog(
                 category=category,
                 summary=response["summary"],
@@ -74,7 +83,7 @@ class SummaryGenerator:
                 tokens_used=response["usage"]["input_tokens"]
                 + response["usage"]["output_tokens"],
                 cost_usd=response["usage"]["cost_usd"],
-                article_urls=[article.article_url for article in articles],
+                article_urls=unique_urls,
             )
 
             # 統計情報を更新

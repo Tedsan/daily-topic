@@ -105,6 +105,16 @@ class SummaryLog(BaseAppModel):
     summary: str = Field(..., max_length=500, description="要約内容（500字以内）")
     article_urls: list[HttpUrl] = Field(default_factory=list)
 
+    def add_article_url(self, url: HttpUrl) -> None:
+        """重複を避けて記事URLを追加"""
+        if url not in self.article_urls:
+            self.article_urls.append(url)
+
+    def add_article_urls(self, urls: list[HttpUrl]) -> None:
+        """重複を避けて複数の記事URLを追加"""
+        for url in urls:
+            self.add_article_url(url)
+
 
 class SlackMessage(BaseAppModel):
     """Slackメッセージ"""
@@ -135,8 +145,12 @@ class DailyTopicReport(BaseAppModel):
         self.total_cost_usd += summary.cost_usd
 
     def add_other_articles(self, articles: list[ArticleMetadata]) -> None:
-        """Otherカテゴリの記事を追加"""
-        self.other_articles.extend(articles)
+        """Otherカテゴリの記事を追加（重複URLは除去）"""
+        existing_urls = {str(article.article_url) for article in self.other_articles}
+        for article in articles:
+            if str(article.article_url) not in existing_urls:
+                self.other_articles.append(article)
+                existing_urls.add(str(article.article_url))
 
 
 class CategorySummaryRequest(BaseAppModel):
@@ -203,9 +217,17 @@ class SlackBlockKitMessage(BaseAppModel):
 
                 # 元記事URL
                 if summary.article_urls:
+                    # 重複URLを除去（順序を保持）
+                    unique_urls = []
+                    seen_urls = set()
+                    for url in summary.article_urls:
+                        if str(url) not in seen_urls:
+                            unique_urls.append(url)
+                            seen_urls.add(str(url))
+
                     url_links = []
                     # 最大5件
-                    for i, url in enumerate(summary.article_urls[:5], 1):
+                    for i, url in enumerate(unique_urls[:5], 1):
                         url_links.append(f"<{url}|記事{i}>")
 
                     blocks.append(
@@ -225,20 +247,28 @@ class SlackBlockKitMessage(BaseAppModel):
 
         # Otherカテゴリ記事（URL一覧）
         if report.other_articles:
+            # 重複URLを除去してから表示
+            unique_other_urls = []
+            seen_other_urls = set()
+            for article in report.other_articles:
+                url_str = str(article.article_url)
+                if url_str not in seen_other_urls:
+                    unique_other_urls.append(url_str)
+                    seen_other_urls.add(url_str)
+
             blocks.append(
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"## C6: Other ({len(report.other_articles)}記事)",
+                        "text": f"## C6: Other ({len(unique_other_urls)}記事)",
                     },
                 }
             )
 
             # URL一覧を5件ずつに分割して表示
-            other_urls = [str(article.article_url) for article in report.other_articles]
-            for i in range(0, len(other_urls), 5):
-                chunk_urls = other_urls[i : i + 5]
+            for i in range(0, len(unique_other_urls), 5):
+                chunk_urls = unique_other_urls[i : i + 5]
                 url_links = [f"<{url}|記事{i+j+1}>" for j, url in enumerate(chunk_urls)]
 
                 blocks.append(
