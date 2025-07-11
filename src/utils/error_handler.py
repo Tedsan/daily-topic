@@ -1,6 +1,6 @@
 """エラーハンドリング"""
 import traceback
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 from src.models import ProcessingError
@@ -13,7 +13,7 @@ class DailyTopicError(Exception):
     """Daily Topic システム基底例外"""
 
     def __init__(
-        self, message: str, step: str = "unknown", job_id: Optional[str] = None
+        self, message: str, step: str = "unknown", job_id: str | None = None
     ):
         super().__init__(message)
         self.message = message
@@ -24,7 +24,7 @@ class DailyTopicError(Exception):
 class SlackAPIError(DailyTopicError):
     """Slack API関連エラー"""
 
-    def __init__(self, message: str, response: Optional[dict] = None):
+    def __init__(self, message: str, response: dict | None = None):
         super().__init__(message, step="slack_api")
         self.response = response
 
@@ -32,7 +32,7 @@ class SlackAPIError(DailyTopicError):
 class ClaudeAPIError(DailyTopicError):
     """Claude API関連エラー"""
 
-    def __init__(self, message: str, response: Optional[dict] = None):
+    def __init__(self, message: str, response: dict | None = None):
         super().__init__(message, step="claude_api")
         self.response = response
 
@@ -40,7 +40,7 @@ class ClaudeAPIError(DailyTopicError):
 class ContentFetchError(DailyTopicError):
     """コンテンツ取得エラー"""
 
-    def __init__(self, message: str, url: Optional[str] = None):
+    def __init__(self, message: str, url: str | None = None):
         super().__init__(message, step="content_fetch")
         self.url = url
 
@@ -48,7 +48,7 @@ class ContentFetchError(DailyTopicError):
 class ContentParsingError(DailyTopicError):
     """コンテンツ解析エラー"""
 
-    def __init__(self, message: str, url: Optional[str] = None):
+    def __init__(self, message: str, url: str | None = None):
         super().__init__(message, step="content_parsing")
         self.url = url
 
@@ -56,13 +56,13 @@ class ContentParsingError(DailyTopicError):
 class CategoryClassificationError(DailyTopicError):
     """カテゴリ分類エラー"""
 
-    def __init__(self, message: str, content: Optional[str] = None):
+    def __init__(self, message: str, content: str | None = None):
         super().__init__(message, step="category_classification")
         self.content = content
 
 
 def create_processing_error(
-    exception: Exception, step: str = "unknown", job_id: Optional[str] = None
+    exception: Exception, step: str = "unknown", job_id: str | None = None
 ) -> ProcessingError:
     """例外からProcessingErrorを作成"""
     error_type = type(exception).__name__
@@ -85,7 +85,7 @@ def create_processing_error(
 def handle_exception(
     exception: Exception,
     step: str = "unknown",
-    job_id: Optional[str] = None,
+    job_id: str | None = None,
     log_error: bool = True,
 ) -> ProcessingError:
     """例外を処理してProcessingErrorを返す"""

@@ -1,6 +1,5 @@
 """Claude APIクライアント"""
 import json
-from typing import Optional
 
 from claude_code_sdk import ClaudeCodeOptions, query
 
@@ -14,7 +13,7 @@ logger = get_logger(__name__)
 class ClaudeClient:
     """Claude APIクライアント"""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         config = get_config()
         self.api_key = api_key or config.claude.api_key
 
@@ -76,17 +75,39 @@ class ClaudeClient:
 
             # 使用量情報を取得（ResultMessageから）
             usage_info = {"input_tokens": 0, "output_tokens": 0}
-            if (
-                result_message
-                and hasattr(result_message, "usage")
-                and result_message.usage
-            ):
+            logger.debug(f"Result message type: {type(result_message)}")
+            logger.debug(
+                f"Result message has usage: {hasattr(result_message, 'usage') if result_message else False}"
+            )
+
+            if result_message and hasattr(result_message, "usage"):
                 usage = result_message.usage
-                usage_info = {
-                    "input_tokens": usage.get("input_tokens", 0) if usage else 0,
-                    "output_tokens": usage.get("output_tokens", 0) if usage else 0,
-                }
-                logger.info(f"Token usage: {usage_info}")
+                logger.debug(f"Usage type: {type(usage)}, Usage value: {usage}")
+
+                if usage is not None:
+                    try:
+                        # usageがdict型の場合とオブジェクト型の場合に対応
+                        if isinstance(usage, dict):
+                            usage_info = {
+                                "input_tokens": usage.get("input_tokens", 0),
+                                "output_tokens": usage.get("output_tokens", 0),
+                            }
+                        else:
+                            # オブジェクト型の場合
+                            usage_info = {
+                                "input_tokens": getattr(usage, "input_tokens", 0),
+                                "output_tokens": getattr(usage, "output_tokens", 0),
+                            }
+                        logger.info(f"Token usage: {usage_info}")
+                    except Exception as usage_error:
+                        logger.error(f"Error parsing usage information: {usage_error}")
+                        logger.error(f"Usage object: {usage}, Type: {type(usage)}")
+                        # デフォルト値を使用
+                        usage_info = {"input_tokens": 0, "output_tokens": 0}
+                else:
+                    logger.debug("Usage is None")
+            else:
+                logger.debug("No result message or usage attribute")
 
             return {"content": content, "usage": usage_info}
 
@@ -98,8 +119,8 @@ class ClaudeClient:
         self,
         content: str,
         category: str,
-        system_prompt: Optional[str] = None,
-        max_tokens: Optional[int] = None,
+        system_prompt: str | None = None,
+        max_tokens: int | None = None,
     ) -> dict:
         """要約を生成
 

@@ -22,7 +22,7 @@ class TestClaudeContract:
 
     def test_claude_api_connection(self):
         """Claude APIの基本接続テスト"""
-        config = get_config()
+        get_config()
 
         # 実際のAPIキーを使用
         claude_client = ClaudeClient()
@@ -97,7 +97,7 @@ class TestSlackContract:
 
     def test_slack_api_connection(self):
         """Slack APIの基本接続テスト"""
-        config = get_config()
+        get_config()
 
         # 実際のBot tokenを使用
         slack_client = SlackClient()

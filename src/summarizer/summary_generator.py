@@ -2,7 +2,6 @@
 import csv
 import json
 import os
-from typing import Optional
 
 from src.config import get_config
 from src.models import ArticleMetadata, Category, SummaryLog
@@ -17,7 +16,7 @@ logger = get_logger(__name__)
 class SummaryGenerator:
     """要約生成クラス"""
 
-    def __init__(self, claude_client: Optional[ClaudeClient] = None):
+    def __init__(self, claude_client: ClaudeClient | None = None):
         self.config = get_config()
         self.claude_client = claude_client or ClaudeClient()
 
@@ -32,7 +31,7 @@ class SummaryGenerator:
         self,
         category: Category,
         articles: list[ArticleMetadata],
-        max_articles: Optional[int] = None,
+        max_articles: int | None = None,
     ) -> SummaryLog:
         """カテゴリ別要約を生成"""
         try:
@@ -145,8 +144,8 @@ class SummaryGenerator:
         return "\n\n".join(content_parts)
 
     def _load_prompt_sample(
-        self, prompt_type: str, category: Optional[Category] = None
-    ) -> Optional[str]:
+        self, prompt_type: str, category: Category | None = None
+    ) -> str | None:
         """プロンプトサンプルを読み込み"""
         try:
             # プロンプトファイルのパス
@@ -171,7 +170,7 @@ class SummaryGenerator:
             logger.warning(f"Failed to load prompt sample: {e}")
             return None
 
-    def save_stats_to_csv(self, filename: Optional[str] = None) -> str:
+    def save_stats_to_csv(self, filename: str | None = None) -> str:
         """統計情報をCSVファイルに保存"""
         try:
             if filename is None:
@@ -216,7 +215,7 @@ class SummaryGenerator:
             logger.error(f"Error saving statistics: {e}")
             raise
 
-    def save_stats_to_json(self, filename: Optional[str] = None) -> str:
+    def save_stats_to_json(self, filename: str | None = None) -> str:
         """統計情報をJSONファイルに保存"""
         try:
             if filename is None:

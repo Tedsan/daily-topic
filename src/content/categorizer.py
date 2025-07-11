@@ -1,6 +1,5 @@
 """カテゴリ分類機能"""
 import re
-from typing import Optional
 
 from src.config import get_config
 from src.models import CATEGORY_INFO, ArticleMetadata, Category
@@ -191,7 +190,7 @@ class CategoryClassifier:
     def limit_articles_per_category(
         self,
         categorized_articles: dict[Category, list[ArticleMetadata]],
-        max_per_category: Optional[int] = None,
+        max_per_category: int | None = None,
     ) -> dict[Category, list[ArticleMetadata]]:
         """カテゴリあたりの記事数を制限"""
         if max_per_category is None:

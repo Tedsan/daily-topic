@@ -1,6 +1,6 @@
 """データモデル定義（pydantic v2対応）"""
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, HttpUrl
@@ -64,13 +64,13 @@ class ArticleMetadata(BaseAppModel):
 
     article_url: HttpUrl
     title: str
-    published_at: Optional[datetime] = None
+    published_at: datetime | None = None
     content: str = Field(..., min_length=200, description="抽出本文（200字以上）")
-    raw_html: Optional[str] = None
+    raw_html: str | None = None
 
     # 分類情報
-    category: Optional[Category] = None
-    category_confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
+    category: Category | None = None
+    category_confidence: float | None = Field(None, ge=0.0, le=1.0)
 
 
 class SummaryLog(BaseAppModel):
@@ -95,8 +95,8 @@ class SlackMessage(BaseAppModel):
     type: str = "message"
     text: str
     ts: str  # Slack timestamp
-    user: Optional[str] = None
-    channel: Optional[str] = None
+    user: str | None = None
+    channel: str | None = None
 
 
 class DailyTopicReport(BaseAppModel):
@@ -108,7 +108,7 @@ class DailyTopicReport(BaseAppModel):
     total_articles: int = 0
     total_tokens: int = 0
     total_cost_usd: float = 0.0
-    processing_time_seconds: Optional[float] = None
+    processing_time_seconds: float | None = None
 
     def add_summary(self, summary: SummaryLog) -> None:
         """要約を追加し、統計を更新"""
@@ -135,8 +135,8 @@ class CategorySummaryResponse(BaseAppModel):
 
     category: Category
     summary: str = Field(..., max_length=500)
-    confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
-    key_points: Optional[list[str]] = None
+    confidence: float | None = Field(None, ge=0.0, le=1.0)
+    key_points: list[str] | None = None
 
 
 class SlackBlockKitMessage(BaseAppModel):
@@ -144,7 +144,7 @@ class SlackBlockKitMessage(BaseAppModel):
 
     channel: str
     blocks: list[dict]
-    text: Optional[str] = None  # fallback text
+    text: str | None = None  # fallback text
 
     @classmethod
     def create_daily_report(cls, report: DailyTopicReport) -> "SlackBlockKitMessage":
@@ -270,5 +270,5 @@ class ProcessingError(BaseAppModel):
     error_type: str
     message: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    job_id: Optional[str] = None
-    stack_trace: Optional[str] = None
+    job_id: str | None = None
+    stack_trace: str | None = None

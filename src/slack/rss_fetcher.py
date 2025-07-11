@@ -1,6 +1,5 @@
 """RSS取得機能"""
 import re
-from typing import Optional
 from urllib.parse import urlparse
 
 from src.config import get_config
@@ -20,7 +19,7 @@ logger = get_logger(__name__)
 class RSSFetcher:
     """RSS取得クラス"""
 
-    def __init__(self, slack_client: Optional[SlackClient] = None):
+    def __init__(self, slack_client: SlackClient | None = None):
         self.config = get_config()
         self.slack_client = slack_client or SlackClient()
 
@@ -104,7 +103,7 @@ class RSSFetcher:
         return urls
 
     def fetch_rss_messages(
-        self, channel: Optional[str] = None, lookback_hours: Optional[int] = None
+        self, channel: str | None = None, lookback_hours: int | None = None
     ) -> list[SlackMessage]:
         """RSSフィードチャネルからメッセージを取得"""
         try:
@@ -177,7 +176,7 @@ class RSSFetcher:
         return url_list
 
     def fetch_rss_urls(
-        self, channel: Optional[str] = None, lookback_hours: Optional[int] = None
+        self, channel: str | None = None, lookback_hours: int | None = None
     ) -> list[str]:
         """RSSフィードからURLを取得（メイン機能）"""
         try:

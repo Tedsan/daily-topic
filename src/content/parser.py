@@ -1,6 +1,5 @@
 """コンテンツ解析機能"""
 import re
-from typing import Optional
 
 from bs4 import BeautifulSoup
 from markdownify import markdownify
@@ -170,7 +169,7 @@ class ContentParser:
         return body_text
 
     def parse_article(
-        self, url: str, html: str, final_url: Optional[str] = None
+        self, url: str, html: str, final_url: str | None = None
     ) -> ArticleMetadata:
         """記事を解析してArticleMetadataを作成"""
         try:

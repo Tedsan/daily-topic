@@ -1,6 +1,5 @@
 """Slack投稿機能"""
 import json
-from typing import Optional
 
 from src.config import get_config
 from src.models import DailyTopicReport, SlackBlockKitMessage, SummaryLog
@@ -14,7 +13,7 @@ logger = get_logger(__name__)
 class MessagePoster:
     """Slack投稿クラス"""
 
-    def __init__(self, slack_client: Optional[SlackClient] = None):
+    def __init__(self, slack_client: SlackClient | None = None):
         self.config = get_config()
         self.slack_client = slack_client or SlackClient()
 
@@ -58,9 +57,9 @@ class MessagePoster:
     def post_error_message(
         self,
         error_message: str,
-        job_id: Optional[str] = None,
-        step: Optional[str] = None,
-        stack_trace: Optional[str] = None,
+        job_id: str | None = None,
+        step: str | None = None,
+        stack_trace: str | None = None,
     ) -> dict:
         """エラーメッセージをSlackに投稿"""
         try:
@@ -219,9 +218,9 @@ class MessagePoster:
     def _create_error_blocks(
         self,
         error_message: str,
-        job_id: Optional[str] = None,
-        step: Optional[str] = None,
-        stack_trace: Optional[str] = None,
+        job_id: str | None = None,
+        step: str | None = None,
+        stack_trace: str | None = None,
     ) -> list[dict]:
         """エラーブロックを作成"""
         blocks = []
@@ -301,7 +300,7 @@ class MessagePoster:
         )
 
     def upload_long_content(
-        self, content: str, filename: str, title: str, channel: Optional[str] = None
+        self, content: str, filename: str, title: str, channel: str | None = None
     ) -> dict:
         """長いコンテンツをファイルとしてアップロード"""
         try:

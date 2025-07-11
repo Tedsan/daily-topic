@@ -1,7 +1,6 @@
 """ログ管理"""
 import logging
 import sys
-from typing import Optional
 
 from src.config import get_config
 
@@ -33,7 +32,7 @@ class ColoredFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def setup_logger(name: str, level: Optional[str] = None) -> logging.Logger:
+def setup_logger(name: str, level: str | None = None) -> logging.Logger:
     """ロガーをセットアップ"""
     config = get_config()
     log_level = level or config.log_level

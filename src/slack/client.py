@@ -1,6 +1,5 @@
 """Slack APIクライアント"""
 import time
-from typing import Optional
 
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -16,7 +15,7 @@ logger = get_logger(__name__)
 class SlackClient:
     """Slack APIクライアント"""
 
-    def __init__(self, token: Optional[str] = None):
+    def __init__(self, token: str | None = None):
         config = get_config()
         self.token = token or config.slack.bot_token
         self.client = WebClient(token=self.token)
@@ -50,7 +49,7 @@ class SlackClient:
             step="slack_api_call",
         )
 
-    def get_channel_id(self, channel_name: str) -> Optional[str]:
+    def get_channel_id(self, channel_name: str) -> str | None:
         """チャネル名からチャネルIDを取得"""
         try:
             # '#'を除去
@@ -77,8 +76,8 @@ class SlackClient:
     def get_channel_history(
         self,
         channel: str,
-        oldest: Optional[str] = None,
-        latest: Optional[str] = None,
+        oldest: str | None = None,
+        latest: str | None = None,
         limit: int = 100,
     ) -> list[SlackMessage]:
         """チャネル履歴を取得"""
@@ -122,8 +121,8 @@ class SlackClient:
     def post_message(
         self,
         channel: str,
-        text: Optional[str] = None,
-        blocks: Optional[list[dict]] = None,
+        text: str | None = None,
+        blocks: list[dict] | None = None,
         **kwargs,
     ) -> dict:
         """メッセージを投稿"""
@@ -158,7 +157,7 @@ class SlackClient:
         channels: str,
         content: str,
         filename: str,
-        title: Optional[str] = None,
+        title: str | None = None,
         **kwargs,
     ) -> dict:
         """ファイルをアップロード"""
