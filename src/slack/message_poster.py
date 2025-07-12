@@ -52,7 +52,7 @@ class MessagePoster:
 
         except Exception as e:
             logger.error(f"Error posting daily report: {e}")
-            raise SlackAPIError(f"Failed to post daily report: {e}")
+            raise SlackAPIError(f"Failed to post daily report: {e}") from e
 
     def post_error_message(
         self,
@@ -92,7 +92,7 @@ class MessagePoster:
 
         except Exception as e:
             logger.error(f"Error posting error message: {e}")
-            raise SlackAPIError(f"Failed to post error message: {e}")
+            raise SlackAPIError(f"Failed to post error message: {e}") from e
 
     def _is_payload_too_large(self, message: SlackBlockKitMessage) -> bool:
         """ペイロードサイズが制限を超えているかチェック"""
@@ -316,7 +316,189 @@ class MessagePoster:
 
         except Exception as e:
             logger.error(f"Error uploading long content: {e}")
-            raise SlackAPIError(f"Failed to upload long content: {e}")
+            raise SlackAPIError(f"Failed to upload long content: {e}") from e
+
+    def post_url_list(
+        self, categorized_articles: dict, other_articles: list | None = None
+    ) -> dict:
+        """RSS-feedから取得したURLリストを投稿"""
+        try:
+            logger.info("Posting URL list to Slack")
+
+            # URLリストのブロックを作成
+            blocks = self._create_url_list_blocks(categorized_articles, other_articles)
+
+            # ペイロード長チェック
+            if len(json.dumps(blocks)) > self.max_payload_size:
+                logger.warning("URL list payload too large, truncating content")
+                blocks = self._truncate_url_list_blocks(blocks)
+
+            channel = self.config.slack.daily_topic_channel
+            if not channel.startswith("#"):
+                channel = f"#{channel}"
+
+            response = self.slack_client.post_message(
+                channel=channel,
+                text="📋 RSS-feedから取得したURL一覧",
+                blocks=blocks,
+            )
+
+            logger.info(f"URL list posted successfully: {response.get('ts')}")
+            return response
+
+        except Exception as e:
+            logger.error(f"Error posting URL list: {e}")
+            raise SlackAPIError(f"Failed to post URL list: {e}") from e
+
+    def _create_url_list_blocks(
+        self, categorized_articles: dict, other_articles: list | None = None
+    ) -> list[dict]:
+        """URLリストのブロックを作成"""
+        from src.models import CATEGORY_INFO
+
+        blocks = []
+
+        # ヘッダー
+        blocks.append(
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": "📋 RSS-feedから取得したURL一覧"},
+            }
+        )
+
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "本日RSS-feedから取得したURL一覧です。各URLには対応するカテゴリIDが付与されています。",
+                },
+            }
+        )
+
+        blocks.append({"type": "divider"})
+
+        # C1-C5カテゴリのURL
+        for category, articles in categorized_articles.items():
+            if category == "C6":  # Otherカテゴリは後で処理
+                continue
+
+            if articles:
+                category_info = CATEGORY_INFO[category]
+
+                # カテゴリヘッダー
+                blocks.append(
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*{category}: {category_info['label']}*",
+                        },
+                    }
+                )
+
+                # URL一覧（最大10件まで表示）
+                url_list = []
+                for article in articles[:10]:
+                    url_list.append(
+                        f"• <{article.article_url}|{article.title[:50]}{'...' if len(article.title) > 50 else ''}> ({category})"
+                    )
+
+                if url_list:
+                    blocks.append(
+                        {
+                            "type": "section",
+                            "text": {"type": "mrkdwn", "text": "\n".join(url_list)},
+                        }
+                    )
+
+                    if len(articles) > 10:
+                        blocks.append(
+                            {
+                                "type": "context",
+                                "elements": [
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": f"...他 {len(articles) - 10} 件",
+                                    }
+                                ],
+                            }
+                        )
+
+        # C6 (Other)カテゴリのURL
+        if other_articles:
+            blocks.append({"type": "divider"})
+
+            blocks.append(
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*C6: {CATEGORY_INFO['C6']['label']}*",
+                    },
+                }
+            )
+
+            # URL一覧（最大10件まで表示）
+            url_list = []
+            for article in other_articles[:10]:
+                url_list.append(
+                    f"• <{article.article_url}|{article.title[:50]}{'...' if len(article.title) > 50 else ''}> (C6)"
+                )
+
+            if url_list:
+                blocks.append(
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "\n".join(url_list)},
+                    }
+                )
+
+                if len(other_articles) > 10:
+                    blocks.append(
+                        {
+                            "type": "context",
+                            "elements": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"...他 {len(other_articles) - 10} 件",
+                                }
+                            ],
+                        }
+                    )
+
+        # フッター
+        total_urls = sum(len(articles) for articles in categorized_articles.values())
+        if other_articles:
+            total_urls += len(other_articles)
+
+        blocks.append({"type": "divider"})
+        blocks.append(
+            {
+                "type": "context",
+                "elements": [{"type": "mrkdwn", "text": f"📊 総URL数: {total_urls}件"}],
+            }
+        )
+
+        return blocks
+
+    def _truncate_url_list_blocks(self, blocks: list[dict]) -> list[dict]:
+        """URLリストブロックを短縮"""
+        # ヘッダーとフッターは保持し、中間の詳細部分を短縮
+        truncated_blocks = blocks[:3]  # ヘッダー部分
+
+        truncated_blocks.append(
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "⚠️ URL一覧が長すぎるため、詳細は省略されています。"},
+            }
+        )
+
+        # フッター部分を保持
+        if len(blocks) > 0 and blocks[-1].get("type") == "context":
+            truncated_blocks.extend(blocks[-2:])  # divider + context
+
+        return truncated_blocks
 
     def create_preview_url(self, blocks: list[dict]) -> str:
         """Block Kit Preview URLを生成"""

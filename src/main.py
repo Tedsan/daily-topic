@@ -74,6 +74,9 @@ class DailyTopicProcessor:
                 articles
             )
 
+            # 3.5. URLリスト投稿
+            await self._step_post_url_list(categorized_articles, other_articles)
+
             # 4. 要約生成
             summaries = await self._step_generate_summaries(categorized_articles)
 
@@ -202,6 +205,24 @@ class DailyTopicProcessor:
                 f"Article categorization failed: {e}", step="categorization"
             ) from e
 
+    async def _step_post_url_list(
+        self, categorized_articles: dict, other_articles: list | None = None
+    ) -> None:
+        """Step 3.5: URLリスト投稿"""
+        logger.info("Step 3.5: Posting URL list to Slack")
+
+        try:
+            await asyncio.to_thread(
+                self.message_poster.post_url_list, categorized_articles, other_articles
+            )
+
+            logger.info("Successfully posted URL list to Slack")
+
+        except Exception as e:
+            logger.error("URL list posting failed: %s", e)
+            # URLリスト投稿の失敗は処理全体を止めない
+            logger.warning("Continuing despite URL list posting failure")
+
     async def _step_generate_summaries(self, categorized_articles: dict) -> list:
         """Step 4: 要約生成"""
         logger.info(
@@ -229,7 +250,7 @@ class DailyTopicProcessor:
             ) from e
 
     async def _step_create_report(
-        self, summaries: list, other_articles: list = None
+        self, summaries: list, other_articles: list | None = None
     ) -> DailyTopicReport:
         """Step 5: レポート作成"""
         logger.info("Step 5: Creating daily report")
